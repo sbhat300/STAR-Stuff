@@ -14,7 +14,6 @@ if not os.path.exists(PYTHON_FIFO_LOCATION):
 c_fifo = os.open(C_FIFO_LOCATION, os.O_RDONLY | os.O_NONBLOCK)
 py_fifo = os.open(PYTHON_FIFO_LOCATION, os.O_WRONLY) 
 
-message = b''
 buffer = b''
 last_check = 0
 NULL_TERMINATOR = b'\0'
@@ -27,34 +26,34 @@ def send_message(msg: bytes):
     written = os.write(py_fifo, msg + NULL_TERMINATOR)
     print(f'{written} bytes sent out of {len(msg) + 1}')
 
-send_message(b'wtfwtfhihihihwafwfawfwfi\0wafwfwaffawef')
-
-try:
-    while True:
-        read, _, _ = select.select([c_fifo], [], [], 0)
-        if read:
-            data = os.read(c_fifo, READ_SIZE)
-            if data:
-                buffer += data
-                print(f'Message received of length {len(buffer)}')
+def check_for_messages():
+    global buffer, last_check, NULL_TERMINATOR
+    read, _, _ = select.select([c_fifo], [], [], 0)
+    if read:
+        data = os.read(c_fifo, READ_SIZE)
+        if data:
+            buffer += data
+            print(f'Message received of length {len(buffer)}')
+            null_idx = buffer.find(NULL_TERMINATOR, last_check)
+            if null_idx == -1:
+                last_check = len(buffer) - 1
+            while null_idx != -1:
+                message = buffer[:null_idx]
+                do_something(message)
+                buffer = buffer[null_idx + 1:]
+                last_check = 0
                 null_idx = buffer.find(NULL_TERMINATOR, last_check)
-                if null_idx == -1:
-                    last_check = len(buffer) - 1
-                while null_idx != -1:
-                    message = buffer[:null_idx]
-                    do_something(message)
-                    buffer = buffer[null_idx + 1:]
-                    last_check = 0
-                    null_idx = buffer.find(NULL_TERMINATOR, last_check)
-                     
-            else:
-                print('Writer closed pipe')
-
         else:
-            #Do other stuff here
-            pass
-finally:
-    print('PYTHON: closing fifos')
-    os.close(py_fifo)
-    os.close(c_fifo)
+            print('Writer closed pipe')
+            
+            
+if __name__ == '__main__':
+    send_message(b'wtfwtfhihihihwafwfawfwfi\0wafwfwaffawef')
+    try:
+        while True:
+            check_for_messages()
+    finally:
+        print('Closing fifos')
+        os.close(py_fifo)
+        os.close(c_fifo)
     
