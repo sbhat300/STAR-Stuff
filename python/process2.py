@@ -6,14 +6,6 @@ PYTHON_FIFO_LOCATION = '/tmp/pyfifo'
 
 READ_SIZE = 2048
 
-if not os.path.exists(C_FIFO_LOCATION):
-    os.mkfifo(C_FIFO_LOCATION)
-if not os.path.exists(PYTHON_FIFO_LOCATION):
-    os.mkfifo(PYTHON_FIFO_LOCATION)
-
-c_fifo = os.open(C_FIFO_LOCATION, os.O_RDONLY | os.O_NONBLOCK)
-py_fifo = os.open(PYTHON_FIFO_LOCATION, os.O_WRONLY) 
-
 buffer = b''
 last_check = 0
 NULL_TERMINATOR = b'\0'
@@ -25,6 +17,19 @@ def do_something(msg: bytes):
 def send_message(msg: bytes):
     written = os.write(py_fifo, msg + NULL_TERMINATOR)
     print(f'{written} bytes sent out of {len(msg) + 1}')
+
+def setup():
+    global C_FIFO_LOCATION, PYTHON_FIFO_LOCATION, c_fifo, py_fifo
+    print('CREATING FIFOS')
+    if not os.path.exists(C_FIFO_LOCATION):
+        os.mkfifo(C_FIFO_LOCATION)
+    if not os.path.exists(PYTHON_FIFO_LOCATION):
+        os.mkfifo(PYTHON_FIFO_LOCATION)
+
+    print('OPENING C FIFO')
+    c_fifo = os.open(C_FIFO_LOCATION, os.O_RDONLY | os.O_NONBLOCK)
+    print('OPENING PY FIFO')
+    py_fifo = os.open(PYTHON_FIFO_LOCATION, os.O_WRONLY) 
 
 def check_for_messages():
     global buffer, last_check, NULL_TERMINATOR
@@ -48,6 +53,7 @@ def check_for_messages():
             
             
 if __name__ == '__main__':
+    setup()
     send_message(b'wtfwtfhihihihwafwfawfwfi\0wafwfwaffawef')
     try:
         while True:

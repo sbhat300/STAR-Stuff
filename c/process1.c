@@ -48,6 +48,45 @@ void doSomething(const char* buffer)
     printf("RECEIVED MESSAGE:\n%s\n", buffer);
 }
 
+int setup()
+{
+    printf("CREATING FIFOs\n");
+    if(mkfifo(PY_FIFO_LOCATION, 0777) == -1)
+    {
+        if(errno != EEXIST)
+        {
+            printf("Could not create PY FIFO file\n");
+            return 1;
+        }
+    }
+    if(mkfifo(C_FIFO_LOCATION, 0777) == -1)
+    {
+        if(errno != EEXIST)
+        {
+            printf("Could not create C FIFO file\n");
+            return 1;
+        }
+    }
+
+    printf("OPENING PY FIFO\n");
+    pyFIFO = open(PY_FIFO_LOCATION, O_RDONLY | O_NONBLOCK);
+    if(pyFIFO == -1)
+    {
+        printf("Could not open PY FIFO file\n");
+        return 1;
+    }
+    printf("OPENING C FIFO\n");
+    cFIFO = open(C_FIFO_LOCATION, O_WRONLY);
+    if(cFIFO == -1)
+    {
+        printf("Could not open C FIFO file\n");
+        return 1;
+    }
+
+    atexit(closeFIFOs);
+    return 0;
+}
+
 int checkForMessages()
 {
     fd_set readfds;
@@ -146,40 +185,7 @@ int checkForMessages()
 
 int main(int argv, char **argc)
 {
-    printf("CREATING FIFOs\n");
-    if(mkfifo(PY_FIFO_LOCATION, 0777) == -1)
-    {
-        if(errno != EEXIST)
-        {
-            printf("Could not create PY FIFO file\n");
-            return 1;
-        }
-    }
-    if(mkfifo(C_FIFO_LOCATION, 0777) == -1)
-    {
-        if(errno != EEXIST)
-        {
-            printf("Could not create C FIFO file\n");
-            return 1;
-        }
-    }
-
-    printf("OPENING PY FIFO\n");
-    pyFIFO = open(PY_FIFO_LOCATION, O_RDONLY | O_NONBLOCK);
-    if(pyFIFO == -1)
-    {
-        printf("Could not open PY FIFO file\n");
-        return 1;
-    }
-    printf("OPENING C FIFO\n");
-    cFIFO = open(C_FIFO_LOCATION, O_WRONLY);
-    if(cFIFO == -1)
-    {
-        printf("Could not open C FIFO file\n");
-        return 1;
-    }
-
-    atexit(closeFIFOs);
+    if(setup()) return EXIT_FAILURE;
     sendMessage("HELLO FROM C!!!!!", 18);
     while(1) 
     {
