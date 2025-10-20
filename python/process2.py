@@ -32,7 +32,7 @@ def setup():
     py_fifo = os.open(PYTHON_FIFO_LOCATION, os.O_WRONLY) 
 
 def check_for_messages():
-    global buffer, last_check, NULL_TERMINATOR
+    global buffer, last_check, c_fifo, NULL_TERMINATOR
     read, _, _ = select.select([c_fifo], [], [], 0)
     if read:
         data = os.read(c_fifo, READ_SIZE)
@@ -50,6 +50,8 @@ def check_for_messages():
                 null_idx = buffer.find(NULL_TERMINATOR, last_check)
         else:
             print('Writer closed pipe')
+            os.close(c_fifo)
+            c_fifo = os.open(C_FIFO_LOCATION, os.O_RDONLY | os.O_NONBLOCK)
             
             
 if __name__ == '__main__':

@@ -168,6 +168,9 @@ int checkForMessages()
             buffer = NULL;
             bufferLen = 0;
             bufferCapacity = 0;
+
+            close(pyFIFO);
+            pyFIFO = open(PY_FIFO_LOCATION, O_RDONLY | O_NONBLOCK);
         }
         else
         {
